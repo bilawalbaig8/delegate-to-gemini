@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>delegate-to-gemini — How It Works</title>
+<style>
+  :root {
+    --blue:    #4A90D9;
+    --purple:  #7C5CBF;
+    --green:   #27AE60;
+    --orange:  #E67E22;
+    --dark:    #1A1A2E;
+    --mid:     #2D2D44;
+    --light:   #F8F9FF;
+    --border:  #E2E8F0;
+    --text:    #2D3748;
+    --muted:   #718096;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--light);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 16px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--mid) 100%);
+    color: white;
+    padding: 72px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, rgba(74,144,217,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 50%, rgba(124,92,191,0.15) 0%, transparent 60%);
+  }
+  .hero-inner { position: relative; max-width: 720px; margin: 0 auto; }
+  .hero-eyebrow {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 5px 18px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    color: rgba(255,255,255,0.7);
+  }
+  .hero h1 {
+    font-size: 52px; font-weight: 800; line-height: 1.15;
+    margin-bottom: 20px; letter-spacing: -1.5px;
+  }
+  .hero h1 .g { color: #60A5FA; }
+  .hero h1 .c { color: #C4B5FD; }
+  .hero-desc {
+    font-size: 20px; color: rgba(255,255,255,0.7);
+    max-width: 560px; margin: 0 auto 40px;
+    line-height: 1.7;
+  }
+  .hero-pills { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .pill {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px; padding: 7px 16px;
+    font-size: 14px; color: rgba(255,255,255,0.8);
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 880px; margin: 0 auto; padding: 0 28px; }
+  .section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+  .section:last-child { border-bottom: none; }
+
+  h2 {
+    font-size: 32px; font-weight: 800; color: var(--dark);
+    margin-bottom: 12px; letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-intro {
+    font-size: 18px; color: var(--muted);
+    margin-bottom: 40px; max-width: 640px;
+  }
+  h3 { font-size: 20px; font-weight: 700; color: var(--dark); margin: 36px 0 14px; }
+  p { margin-bottom: 16px; font-size: 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── Analogy box ── */
+  .analogy {
+    background: linear-gradient(135deg, #EBF5FF, #F5F3FF);
+    border: 2px solid #C7D2FE;
+    border-radius: 16px;
+    padding: 32px;
+    margin: 32px 0;
+  }
+  .analogy .ana-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--purple); margin-bottom: 12px;
+  }
+  .analogy p { font-size: 17px; color: var(--dark); line-height: 1.8; margin: 0; }
+  .analogy strong { color: var(--purple); }
+
+  /* ── Big cards ── */
+  .big-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+  .big-card {
+    border-radius: 16px; padding: 32px;
+    border: 2px solid;
+  }
+  .big-card.blue  { border-color: #BFDBFE; background: #EFF6FF; }
+  .big-card.purple { border-color: #DDD6FE; background: #F5F3FF; }
+  .big-card .bc-emoji { font-size: 36px; margin-bottom: 14px; display: block; }
+  .big-card h4 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .big-card.blue   h4 { color: #1D4ED8; }
+  .big-card.purple h4 { color: #6D28D9; }
+  .big-card p { font-size: 15px; color: var(--muted); margin: 0; line-height: 1.7; }
+
+  /* ── Feature cards ── */
+  .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin: 32px 0; }
+  .feat-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .feat-card .feat-icon { font-size: 32px; margin-bottom: 14px; }
+  .feat-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--dark); }
+  .feat-card p { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.7; }
+
+  /* ── How it works flow ── */
+  .flow { margin: 32px 0; }
+  .flow-step {
+    display: flex; gap: 20px; align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .flow-step:last-child { margin-bottom: 0; }
+  .flow-line {
+    display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0; width: 48px;
+  }
+  .flow-num {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; flex-shrink: 0;
+  }
+  .flow-num.you    { background: #E0F2FE; color: #0284C7; border: 2px solid #BAE6FD; }
+  .flow-num.claude { background: #F3EFFF; color: #6D28D9; border: 2px solid #DDD6FE; }
+  .flow-num.gemini { background: #EFF6FF; color: #1D4ED8; border: 2px solid #BFDBFE; }
+  .flow-num.save   { background: #F0FFF4; color: #15803D; border: 2px solid #BBF7D0; }
+  .flow-connector {
+    width: 2px; background: var(--border); flex-grow: 1;
+    min-height: 24px; margin: 4px 0;
+  }
+  .flow-body { padding-top: 10px; padding-bottom: 24px; flex: 1; }
+  .flow-body h4 { font-size: 17px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+  .flow-body p  { font-size: 15px; color: var(--muted); margin: 0; }
+
+  /* ── Task use cases ── */
+  .use-cases { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 32px 0; }
+  .use-case {
+    background: white; border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+  }
+  .use-case .uc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .use-case .uc-emoji { font-size: 24px; }
+  .use-case h4 { font-size: 15px; font-weight: 700; color: var(--dark); }
+  .use-case .uc-body { font-size: 14px; color: var(--muted); line-height: 1.7; }
+  .use-case .uc-example {
+    margin-top: 10px; padding: 10px 14px;
+    background: #F8F9FA; border-radius: 8px;
+    font-size: 13px; color: var(--text); font-style: italic;
+    border-left: 3px solid var(--border);
+  }
+  .use-case .uc-model {
+    margin-top: 8px; display: inline-block;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 3px 10px; border-radius: 10px;
+  }
+  .use-case .uc-model.flash  { background: #E0F2FE; color: #0284C7; }
+  .use-case .uc-model.pro    { background: #EDE9FE; color: #6D28D9; }
+  .use-case .uc-model.think  { background: #FDF2F8; color: #BE185D; }
+  .use-case .uc-model.claude { background: #F3EFFF; color: #6D28D9; }
+
+  /* ── Decision helper ── */
+  .decision-box {
+    background: white; border: 2px solid var(--border);
+    border-radius: 16px; padding: 36px; margin: 32px 0;
+  }
+  .decision-box h4 { font-size: 18px; font-weight: 700; margin-bottom: 24px; color: var(--dark); }
+  .decision-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .decision-row:last-child { border-bottom: none; }
+  .decision-q { flex: 1; font-size: 15px; }
+  .decision-a {
+    flex-shrink: 0; padding: 5px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 700;
+  }
+  .decision-a.flash  { background: #E0F2FE; color: #0284C7; }
+  .decision-a.pro    { background: #EDE9FE; color: #6D28D9; }
+  .decision-a.think  { background: #FDF2F8; color: #BE185D; }
+
+  /* ── Setup steps ── */
+  .setup-steps { margin: 32px 0; }
+  .setup-step {
+    display: flex; gap: 20px; align-items: flex-start;
+    margin-bottom: 28px;
+  }
+  .setup-step-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--dark); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; flex-shrink: 0;
+  }
+  .setup-step-body h4 { font-size: 17px; font-weight: 700; margin-bottom: 6px; color: var(--dark); }
+  .setup-step-body p  { font-size: 15px; color: var(--muted); margin: 0; }
+  .setup-step-body .cmd {
+    display: inline-block; margin-top: 10px;
+    background: var(--dark); color: #93C5FD;
+    font-family: 'Consolas', monospace; font-size: 13px;
+    padding: 8px 16px; border-radius: 8px;
+  }
+
+  /* ── Alerts / callouts ── */
+  .callout {
+    border-radius: 12px; padding: 20px 24px;
+    margin: 24px 0; display: flex; gap: 14px; align-items: flex-start;
+  }
+  .callout.tip    { background: #EFF6FF; border-left: 4px solid var(--blue); }
+  .callout.good   { background: #F0FFF4; border-left: 4px solid var(--green); }
+  .callout.note   { background: #FFFBEB; border-left: 4px solid var(--orange); }
+  .callout .ci    { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .callout-text p { margin: 0; font-size: 15px; line-height: 1.7; }
+  .callout-text strong { color: var(--dark); }
+
+  /* ── GitHub section ── */
+  .github-steps { margin: 24px 0; }
+  .gh-step {
+    display: flex; gap: 16px; align-items: flex-start;
+    padding: 18px; background: white; border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 12px;
+  }
+  .gh-step .gh-num {
+    width: 32px; height: 32px; border-radius: 50%; background: #24292F;
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0;
+  }
+  .gh-step .gh-body h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .gh-step .gh-body p  { font-size: 14px; color: var(--muted); margin: 0; }
+  .include-list { margin: 20px 0; }
+  .inc-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 15px;
+  }
+  .inc-row.yes { background: #F0FFF4; }
+  .inc-row.no  { background: #FFF5F5; }
+  .inc-row .mark { font-size: 18px; flex-shrink: 0; }
+  .inc-row .name { font-weight: 600; min-width: 220px; }
+  .inc-row .why  { color: var(--muted); font-size: 14px; }
+
+  /* ── FAQ ── */
+  .faq { margin: 32px 0; }
+  .faq-item {
+    background: white; border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; margin-bottom: 16px;
+  }
+  .faq-item .faq-q {
+    font-size: 17px; font-weight: 700; color: var(--dark); margin-bottom: 10px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .faq-item .faq-q .q-mark {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--dark);
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+  }
+  .faq-item .faq-a { font-size: 15px; color: var(--muted); line-height: 1.8; }
+
+  /* ── Footer ── */
+  .footer {
+    background: var(--dark); color: rgba(255,255,255,0.45);
+    text-align: center; padding: 40px 24px; font-size: 14px;
+  }
+  .footer strong { color: rgba(255,255,255,0.7); }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 34px; }
+    .big-cards, .use-cases { grid-template-columns: 1fr; }
+    .hero-desc { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Claude Code Skill</div>
+    <h1>Two AIs.<br>Better than one.</h1>
+    <p class="hero-desc">
+      <span class="g">Gemini</span> researches. <span class="c">Claude</span> builds.
+      This skill makes them work together automatically —
+      so you get the best of both without switching tabs or copying prompts.
+    </p>
+    <div class="hero-pills">
+      <div class="pill">🔍 Live Web Research</div>
+      <div class="pill">🎥 Video &amp; Image Analysis</div>
+      <div class="pill">💡 Game Design &amp; Specs</div>
+      <div class="pill">📁 Separate Memory per Project</div>
+      <div class="pill">🤖 Automatic — just ask</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- WHAT IS THIS -->
+  <div class="section" id="what">
+    <h2>🤔 What is this?</h2>
+    <p class="section-intro">A skill that gives Claude a "research partner" — and makes the two of them pass notes automatically.</p>
+
+    <div class="analogy">
+      <div class="ana-label">Think of it like this</div>
+      <p>
+        Imagine you have <strong>two expert assistants</strong>. One is brilliant at going online,
+        watching videos, reading massive documents, and coming back with a full research report.
+        The other is brilliant at writing code, making decisions, and building things from a plan.
+        <br><br>
+        This skill is the <strong>manager</strong> who decides which assistant gets each task,
+        makes sure they share notes, and keeps everything organised in one place.
+        You just describe what you need — the rest happens automatically.
+      </p>
+    </div>
+
+    <div class="big-cards">
+      <div class="big-card blue">
+        <span class="bc-emoji">🔵</span>
+        <h4>Gemini does the research</h4>
+        <p>Browse the web, watch YouTube videos, analyse screenshots, read giant files, write first drafts. It has a massive memory and can search Google in real time.</p>
+      </div>
+      <div class="big-card purple">
+        <span class="bc-emoji">🟣</span>
+        <h4>Claude does the building</h4>
+        <p>Write code, make architecture decisions, reason through tricky problems, test and polish. It takes Gemini's research and turns it into something real.</p>
+      </div>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">🤖</div>
+        <h4>Fully automatic</h4>
+        <p>You never pick which AI to use. Just describe your task in plain language — Claude figures out if Gemini should help and handles it.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📁</div>
+        <h4>Each project stays separate</h4>
+        <p>Working on two games at once? Each gets its own folder. Research for Game A never mixes with Game B.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">💾</div>
+        <h4>Nothing is forgotten</h4>
+        <p>Everything Gemini finds is saved to disk automatically. Next session, both AIs pick up exactly where you left off.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📋</div>
+        <h4>Ready-made prompts</h4>
+        <p>Need a game design doc? Competitor research? Asset review? Fill in a template — Gemini does the rest in the right format.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section" id="how">
+    <h2>⚡ How does it work?</h2>
+    <p class="section-intro">Behind the scenes, every task goes through a simple chain. You only see the result.</p>
+
+    <div class="flow">
+
+      <div class="flow-step">
+        <div class="flow-line">
+          <div class="flow-num you">💬</div>
+          <div class="flow-connector"></div>
+        </div>
+        <div class="flow-body">
+          <h4>You ask for something</h4>
+          <p>"Research the top mobile puzzle games in 2025" or "Design an energy system for my game"</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-line">
+          <div class="flow-num claude">C</div>
+          <div class="flow-connector"></div>
+        </div>
+        <div class="flow-body">
+          <h4>Claude decides the best approach</h4>
+          <p>Three quick questions tell Claude if this is a simple task, a research task, or a complex one that needs deep thinking. It picks the right Gemini mode automatically.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-line">
+          <div class="flow-num claude">C</div>
+          <div class="flow-connector"></div>
+        </div>
+        <div class="flow-body">
+          <h4>Claude prepares a sharp prompt (for complex tasks)</h4>
+          <p>Before sending the task to Gemini, Claude uses a brainstorming skill to make the question as clear and precise as possible. Vague questions get vague answers — this step fixes that.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-line">
+          <div class="flow-num gemini">G</div>
+          <div class="flow-connector"></div>
+        </div>
+        <div class="flow-body">
+          <h4>Gemini does the work</h4>
+          <p>Gemini searches the web, analyses your video, writes the design doc — whatever was needed. It saves the full result to your project folder automatically.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-line">
+          <div class="flow-num claude">C</div>
+          <div class="flow-connector"></div>
+        </div>
+        <div class="flow-body">
+          <h4>Claude turns the output into action (when needed)</h4>
+          <p>If Gemini wrote a spec or design doc, Claude converts it into a step-by-step implementation plan so it's ready to build from.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-line">
+          <div class="flow-num save">💾</div>
+        </div>
+        <div class="flow-body">
+          <h4>Memory is updated — always</h4>
+          <p>Claude updates the shared memory file so next session, both AIs know exactly what was done, what decisions were made, and what's still open.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout good">
+      <div class="ci">✅</div>
+      <div class="callout-text">
+        <p><strong>You see one clean result.</strong> All the routing, prompt-writing, model selection, and file-saving happens invisibly. The only thing you see is a brief message like <em>"🤖 Delegating to Gemini — researching top mobile puzzle games"</em> and then the answer.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT CAN I USE IT FOR -->
+  <div class="section" id="usecases">
+    <h2>🎯 What can I use it for?</h2>
+    <p class="section-intro">If you can describe it in plain English, just ask Claude. Here are the most common cases.</p>
+
+    <div class="use-cases">
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">🔍</span>
+          <h4>Web Research</h4>
+        </div>
+        <div class="uc-body">Gemini searches the web in real time and brings back a structured report.</div>
+        <div class="uc-example">"Research the top energy system designs in mobile games"</div>
+        <span class="uc-model pro">Gemini Pro</span>
+      </div>
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">🎮</span>
+          <h4>Game Design Docs</h4>
+        </div>
+        <div class="uc-body">Write full GDD sections, mechanic specs, balance systems, and feature ideas.</div>
+        <div class="uc-example">"Design the energy system for SandLoop — costs, caps, regeneration"</div>
+        <span class="uc-model think">Pro + Deep Thinking</span>
+      </div>
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">🎥</span>
+          <h4>Video Analysis</h4>
+        </div>
+        <div class="uc-body">Watch a YouTube video or a local gameplay clip and write a breakdown.</div>
+        <div class="uc-example">"Analyse this YouTube gameplay and make a dev spec from it"</div>
+        <span class="uc-model pro">Gemini Pro</span>
+      </div>
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">🖼️</span>
+          <h4>UI &amp; Image Review</h4>
+        </div>
+        <div class="uc-body">Drop a screenshot. Get a prioritised list of issues and improvements.</div>
+        <div class="uc-example">"Review this menu screen — what's confusing for a first-time player?"</div>
+        <span class="uc-model flash">Gemini Flash (fast)</span>
+      </div>
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">📄</span>
+          <h4>Big File Summaries</h4>
+        </div>
+        <div class="uc-body">Feed Gemini a giant document, codebase, or log and get a clear summary.</div>
+        <div class="uc-example">"Summarise this entire codebase and tell me how it's structured"</div>
+        <span class="uc-model pro">Gemini Pro</span>
+      </div>
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">❓</span>
+          <h4>Quick Questions</h4>
+        </div>
+        <div class="uc-body">Fast factual questions that need a quick answer, not a deep report.</div>
+        <div class="uc-example">"What does Unity's Input System package do?"</div>
+        <span class="uc-model flash">Gemini Flash (fast &amp; free)</span>
+      </div>
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">💻</span>
+          <h4>Code &amp; Building</h4>
+        </div>
+        <div class="uc-body">Code writing, architecture, testing, and polishing stay with Claude — it's better at this.</div>
+        <div class="uc-example">"Build the energy system based on the GDD Gemini just wrote"</div>
+        <span class="uc-model claude">Claude</span>
+      </div>
+
+      <div class="use-case">
+        <div class="uc-header">
+          <span class="uc-emoji">📊</span>
+          <h4>Competitor Analysis</h4>
+        </div>
+        <div class="uc-body">Live research on competing products, market trends, or reference games.</div>
+        <div class="uc-example">"What do the top 5 merge games do differently from each other?"</div>
+        <span class="uc-model pro">Gemini Pro</span>
+      </div>
+
+    </div>
+
+    <h3>Not sure which AI will handle your task?</h3>
+    <p>You don't need to know — Claude decides. But if you're curious, here's the simple rule:</p>
+
+    <div class="decision-box">
+      <h4>Claude asks itself three questions:</h4>
+      <div class="decision-row">
+        <div class="decision-q">Is this a <strong>huge amount of content</strong> to process — more than a book?</div>
+        <div class="decision-a pro">→ Gemini Pro</div>
+      </div>
+      <div class="decision-row">
+        <div class="decision-q">Does this need <strong>searching the web</strong> for current information?</div>
+        <div class="decision-a pro">→ Gemini Pro</div>
+      </div>
+      <div class="decision-row">
+        <div class="decision-q">Is this a <strong>complex creative or reasoning task</strong> — like a full game system spec?</div>
+        <div class="decision-a think">→ Gemini Pro + Deep Thinking</div>
+      </div>
+      <div class="decision-row" style="border-bottom:none">
+        <div class="decision-q">Everything else — quick questions, small tasks, images?</div>
+        <div class="decision-a flash">→ Gemini Flash (free &amp; fast)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHERE DOES IT SAVE THINGS -->
+  <div class="section" id="memory">
+    <h2>💾 Where does it save things?</h2>
+    <p class="section-intro">Everything is saved in a folder called <strong>AI-Context</strong> — either inside your current project, or in your home folder if you're not in a project.</p>
+
+    <div class="callout tip">
+      <div class="ci">📁</div>
+      <div class="callout-text">
+        <p>
+          <strong>Inside a project</strong> (a folder with a .git file, CLAUDE.md, or package.json)?<br>
+          → Everything saves to <code>YourProject/AI-Context/</code><br><br>
+          <strong>Not in a specific project</strong>?<br>
+          → Everything saves to <code>~/AI-Context/</code> (your home folder)
+        </p>
+      </div>
+    </div>
+
+    <p>Inside <strong>AI-Context</strong>, you'll find:</p>
+
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">🧠</div>
+        <h4>gemini-memory.md</h4>
+        <p>Gemini's running memory. It reads this at the start of every session to remember what was done before. Claude also reads it.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔍</div>
+        <h4>research/</h4>
+        <p>Full research reports from web searches, dated and named.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🎮</div>
+        <h4>game-design/</h4>
+        <p>GDD sections, mechanic specs, feature designs written by Gemini.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🖼️</div>
+        <h4>analysis/</h4>
+        <p>Image and video review outputs — one file per asset reviewed.</p>
+      </div>
+    </div>
+
+    <div class="callout note">
+      <div class="ci">⚠️</div>
+      <div class="callout-text">
+        <p><strong>Why is saving so important?</strong> Gemini has no memory on its own — it forgets everything when a session ends. This skill forces it to save every result to disk. The next time you open the project, Gemini reads those files and instantly knows your game, your decisions, and your progress.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GETTING STARTED -->
+  <div class="section" id="install">
+    <h2>🔧 Getting started</h2>
+    <p class="section-intro">One-time setup. Takes about 5 minutes. After that, just talk to Claude normally.</p>
+
+    <div class="setup-steps">
+
+      <div class="setup-step">
+        <div class="setup-step-num">1</div>
+        <div class="setup-step-body">
+          <h4>Copy the skill into your Claude skills folder</h4>
+          <p>This is the folder where Claude looks for custom skills. Copy the entire <code>delegate-to-gemini</code> folder into it.</p>
+          <div class="cmd">Windows: Copy-Item -Recurse delegate-to-gemini "$HOME\.claude\skills\"</div><br>
+          <div class="cmd">Mac / Linux: cp -r delegate-to-gemini ~/.claude/skills/</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-step-num">2</div>
+        <div class="setup-step-body">
+          <h4>Run the setup script</h4>
+          <p>This script installs everything you need — the Gemini CLI tool, the Python helper for image/video analysis, and your output folders. It will guide you through each step.</p>
+          <div class="cmd">Windows: python "$HOME\.claude\skills\delegate-to-gemini\setup.py"</div><br>
+          <div class="cmd">Mac / Linux: python ~/.claude/skills/delegate-to-gemini/setup.py</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-step-num">3</div>
+        <div class="setup-step-body">
+          <h4>Log in to Gemini with your Google account</h4>
+          <p>Open a terminal, type <code>gemini</code>, then type <code>/auth</code> and sign in with your Google account in the browser that opens. This is your own personal login — nothing is shared. You only need to do this once.</p>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-step-num">4</div>
+        <div class="setup-step-body">
+          <h4>Get a free Gemini API key (for images &amp; videos only)</h4>
+          <p>Go to <strong>aistudio.google.com/apikey</strong>, create a free key, and paste it when setup.py asks. You only need this for image and video analysis — the regular web research works without it.</p>
+          <p style="margin-top:8px; font-size:14px; color: var(--muted);">Your API key is stored privately on your machine. It is never put into any shared file or the GitHub repo.</p>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-step-num">5</div>
+        <div class="setup-step-body">
+          <h4>Open Claude Code in your project and start asking</h4>
+          <p>That's it. Open Claude Code inside your project folder and just describe what you need. The skill is loaded automatically.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout good">
+      <div class="ci">✅</div>
+      <div class="callout-text">
+        <p><strong>Already have Gemini CLI installed?</strong> You can skip straight to step 5 and just make sure <code>gemini-analyze.py</code> exists at <code>~/.claude/tools/gemini-analyze.py</code>. If it doesn't, run setup.py anyway — it only installs what's missing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GITHUB -->
+  <div class="section" id="github">
+    <h2>🐙 Sharing on GitHub</h2>
+    <p class="section-intro">Yes — you can copy this skill folder to any directory and upload it to GitHub. It was built to be shared.</p>
+
+    <p>The skill folder contains <strong>no personal information, no API keys, and no login credentials</strong>. Anyone who downloads it runs the setup script to connect their own Google account and API key on their own machine.</p>
+
+    <h3>What to include and what to leave out</h3>
+
+    <div class="include-list">
+      <div class="inc-row yes">
+        <span class="mark">✅</span>
+        <span class="name">SKILL.md</span>
+        <span class="why">The skill itself — this is what Claude reads</span>
+      </div>
+      <div class="inc-row yes">
+        <span class="mark">✅</span>
+        <span class="name">setup.py</span>
+        <span class="why">The installer — users run this to get set up</span>
+      </div>
+      <div class="inc-row yes">
+        <span class="mark">✅</span>
+        <span class="name">gemini-analyze.py</span>
+        <span class="why">The image/video helper script</span>
+      </div>
+      <div class="inc-row yes">
+        <span class="mark">✅</span>
+        <span class="name">README.md &amp; docs.html</span>
+        <span class="why">Documentation</span>
+      </div>
+      <div class="inc-row no">
+        <span class="mark">🚫</span>
+        <span class="name">.claude/settings.local.json</span>
+        <span class="why">Contains your local file paths — don't share</span>
+      </div>
+      <div class="inc-row no">
+        <span class="mark">🚫</span>
+        <span class="name">docs/superpowers/</span>
+        <span class="why">Internal planning notes — not needed publicly</span>
+      </div>
+      <div class="inc-row no">
+        <span class="mark">🚫</span>
+        <span class="name">~/.config/delegate-to-gemini/.env</span>
+        <span class="why">Your API key — this is outside the folder anyway, never in the repo</span>
+      </div>
+    </div>
+
+    <h3>How to publish it</h3>
+
+    <div class="github-steps">
+      <div class="gh-step">
+        <div class="gh-num">1</div>
+        <div class="gh-body">
+          <h4>Copy the folder to a new location</h4>
+          <p>Copy <code>~/.claude/skills/delegate-to-gemini</code> to a new folder (e.g. your Projects folder). This keeps your installed copy separate from the one you're publishing.</p>
+        </div>
+      </div>
+      <div class="gh-step">
+        <div class="gh-num">2</div>
+        <div class="gh-body">
+          <h4>Add a .gitignore file</h4>
+          <p>Create a file called <code>.gitignore</code> in the folder with these lines: <code>.claude/</code> and <code>docs/superpowers/</code> — this keeps the internal files out of the repo.</p>
+        </div>
+      </div>
+      <div class="gh-step">
+        <div class="gh-num">3</div>
+        <div class="gh-body">
+          <h4>Create the repo and push</h4>
+          <p>Initialise a git repo in the folder, add your files, commit, and push to GitHub as normal. Anyone who clones it gets a clean copy with no personal data.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <div class="ci">💡</div>
+      <div class="callout-text">
+        <p><strong>For people installing from your GitHub repo:</strong> Clone → copy the folder into <code>~/.claude/skills/</code> → run <code>setup.py</code>. Done. Their credentials stay on their machine.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section" id="faq">
+    <h2>❓ Common questions</h2>
+    <p class="section-intro">Things people ask when they first use this skill.</p>
+
+    <div class="faq">
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="q-mark">Q</div>
+          <span>Do I need to tell Claude when to use Gemini?</span>
+        </div>
+        <div class="faq-a">No. Just describe your task in plain English. Claude runs a quick 3-question check and decides automatically. You'll see a message like <em>"🤖 Delegating to Gemini Pro"</em> when it does.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="q-mark">Q</div>
+          <span>Will this cost me money?</span>
+        </div>
+        <div class="faq-a">Gemini Flash (used for quick tasks and images) is on the free tier — no cost. Gemini Pro (used for deep research and writing) counts against your Google account's daily quota. If you need more, Google AI Pro is $20/month. You already have Claude Code — no extra cost there.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="q-mark">Q</div>
+          <span>What happens when Gemini hits its daily limit?</span>
+        </div>
+        <div class="faq-a">Claude will tell you immediately and suggest either switching to the free Flash model or waiting for the quota to reset. Before stopping, it saves everything to your project memory so nothing is lost. Next session picks up exactly where you left off.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="q-mark">Q</div>
+          <span>Can I use this across multiple projects?</span>
+        </div>
+        <div class="faq-a">Yes — and it stays completely separate. Open Project A and all research goes into Project A's AI-Context folder. Open Project B and the same happens for Project B. They never mix.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="q-mark">Q</div>
+          <span>What is the "AI-Context" folder?</span>
+        </div>
+        <div class="faq-a">It's the shared memory folder between Gemini and Claude. Gemini saves everything it produces there. Claude reads from it when you say things like "use my research" or "continue where we left off". Think of it as a shared notepad that both AIs can read and write.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="q-mark">Q</div>
+          <span>Is my data safe? Does Gemini see my private files?</span>
+        </div>
+        <div class="faq-a">Gemini only sees what Claude explicitly sends to it — the task description and the project context you've built up in AI-Context. It does not scan your hard drive. Your API key is stored locally in a private config folder and is never sent anywhere except Google's API.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="q-mark">Q</div>
+          <span>Something's not working. What do I try first?</span>
+        </div>
+        <div class="faq-a">
+          Run the setup script again — it only installs what's missing, so it's safe to re-run:<br>
+          <strong>Windows:</strong> <code>python "$HOME\.claude\skills\delegate-to-gemini\setup.py"</code><br>
+          <strong>Mac / Linux:</strong> <code>python ~/.claude/skills/delegate-to-gemini/setup.py</code><br><br>
+          If Gemini says it's not logged in, open a terminal and run <code>gemini</code> then type <code>/auth</code>.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p><strong>delegate-to-gemini</strong> — Claude Code Skill &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; v2 + Phase C</p>
+  <p style="margin-top:10px">Each user provides their own credentials &nbsp;·&nbsp; Project-scoped output &nbsp;·&nbsp; Nothing is ever lost between sessions</p>
+</div>
+
+</body>
+</html>
