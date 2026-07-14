@@ -190,7 +190,7 @@ cat file.txt | gemini "summarize this" --output-format text 2>&1 | grep -v "^Loa
 
 ## Image & Video Analysis
 
-Requires `gemini-analyze.py` at `$HOME\.claude\tools\gemini-analyze.py` and `GEMINI_API_KEY` set.
+Requires `gemini-analyze.py` at `$HOME\.claude\tools\gemini-analyze.py` and an API key pasted into `$HOME\.config\delegate-to-gemini\api-key.txt`.
 
 > **If `gemini-analyze.py` is missing:** Run `python "$HOME\.claude\skills\delegate-to-gemini\setup.py"` to install it. Until then, describe the image/video to Claude and handle inline.
 
@@ -441,7 +441,7 @@ This ensures a quota reset never loses context. Next session picks up exactly wh
 | `quota` / `rate limit` in gemini-analyze.py | API free tier (15 RPM) | Tell user to wait 60s or check aistudio.google.com/billing |
 | Empty output / blank response | Network issue or bad prompt | Retry once; if fails again, handle in Claude |
 | `command not found: gemini` | Gemini CLI not installed | Run `python "$HOME\.claude\skills\delegate-to-gemini\setup.py"` |
-| `No GEMINI_API_KEY` | API key missing | Run setup.py — it sets the key persistently |
+| `No API key found` | Key missing from `api-key.txt` | Run setup.py to create the template, then paste your key into `$HOME\.config\delegate-to-gemini\api-key.txt` |
 | `gemini-analyze.py` not found | Script not installed | Run setup.py; handle task in Claude until resolved |
 
 Never silently fail. Always show the user what went wrong and what to do next.
@@ -495,6 +495,6 @@ Resolve `$AI_CONTEXT` first → read `$AI_CONTEXT/gemini-memory.md` → load spe
 - **Credentials:** user's own Google account OAuth — run `gemini` → `/auth` once to log in
 - **`--yolo`:** enables Google Search grounding AND grants Gemini file read/write tools on your machine — intentional for saving outputs, but only use for research tasks
 - **`--thinking`:** enables extended thinking for hard reasoning tasks — expensive, reserve for Pro+Thinking tier only
-- **API key** (for gemini-analyze.py only): stored in `$HOME\.config\delegate-to-gemini\.env` by setup.py — not needed for Gemini CLI
+- **API key** (for gemini-analyze.py only): paste it into `$HOME\.config\delegate-to-gemini\api-key.txt` (setup.py creates the template) — not needed for Gemini CLI
 - **Not set up?** Run: `python "$HOME\.claude\skills\delegate-to-gemini\setup.py"`
 - **Phase C (future):** Task-type prompt templates per category (GDD, research, asset review) — not yet implemented

@@ -140,7 +140,7 @@ delegate-to-gemini/
 ## Privacy & credentials
 
 - **OAuth login** — stored by the Gemini CLI in your local user profile. Never in this repo.
-- **API key** — stored in `~/.config/delegate-to-gemini/.env` by the setup script. Never in this repo.
+- **API key** — you paste it yourself into `~/.config/delegate-to-gemini/api-key.txt` (the setup script only creates the empty template). Never in this repo.
 - **AI-Context output** — lives inside your project folder. Not part of this repo.
 
 Each person who installs this skill uses their own Google account and API key.

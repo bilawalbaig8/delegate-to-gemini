@@ -21,13 +21,15 @@ Usage:
   python gemini-analyze.py youtube https://...        "prompt" --model gemini-2.5-flash
 """
 
+from __future__ import annotations
+
 import sys
 import os
 import pathlib
 from datetime import datetime
 
 HOME = pathlib.Path.home()
-ENV_FILE = HOME / ".config" / "delegate-to-gemini" / ".env"
+API_KEY_FILE = HOME / ".config" / "delegate-to-gemini" / "api-key.txt"
 
 _PROJECT_MARKERS = {".git", ".claude", "CLAUDE.md", "package.json", "project.json", "CMakeLists.txt"}
 
@@ -50,14 +52,14 @@ def _resolve_output_dir(override: str | None = None) -> pathlib.Path:
 
 
 def load_api_key():
-    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if key:
-        return key
-    if ENV_FILE.exists():
-        for line in ENV_FILE.read_text().splitlines():
-            if line.startswith("GEMINI_API_KEY="):
-                return line.split("=", 1)[1].strip()
-    return None
+    """Reads the key from api-key.txt (first non-empty, non-comment line).
+    Falls back to GEMINI_API_KEY / GOOGLE_API_KEY env vars if already set."""
+    if API_KEY_FILE.exists():
+        for line in API_KEY_FILE.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                return line
+    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
 
 def analyze(media_type: str, source: str, prompt: str = None,
@@ -72,8 +74,10 @@ def analyze(media_type: str, source: str, prompt: str = None,
 
     api_key = load_api_key()
     if not api_key:
-        print("ERROR: No GEMINI_API_KEY found.")
-        print("Run setup: python ~/.claude/skills/delegate-to-gemini/setup.py")
+        print(f"ERROR: No API key found in {API_KEY_FILE}")
+        print("Get a free key at https://aistudio.google.com/apikey, then paste it")
+        print(f"as the only line in: {API_KEY_FILE}")
+        print("(Run setup.py first if that file doesn't exist yet.)")
         sys.exit(1)
 
     # Pick model — explicit override > auto-select by media type

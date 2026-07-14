@@ -860,7 +860,7 @@ python "$HOME\.claude\tools\gemini-analyze.py" youtube "https://youtube.com/watc
           <h4>Run the setup wizard</h4>
           <p><strong>Windows:</strong> <code>python "$HOME\.claude\skills\delegate-to-gemini\setup.py"</code><br>
           <strong>macOS / Linux:</strong> <code>python ~/.claude/skills/delegate-to-gemini/setup.py</code></p>
-          <p>Installs Gemini CLI (if missing), <code>google-genai</code> pip package, copies <code>gemini-analyze.py</code> to <code>~/.claude/tools/</code>, creates <code>~/AI-Context/</code> folder structure, and stores your API key in <code>~/.config/delegate-to-gemini/.env</code>.</p>
+          <p>Installs Gemini CLI (if missing), <code>google-genai</code> pip package, copies <code>gemini-analyze.py</code> to <code>~/.claude/tools/</code>, creates <code>~/AI-Context/</code> folder structure, and creates <code>~/.config/delegate-to-gemini/api-key.txt</code> for you to paste your key into.</p>
         </div>
       </div>
       <div class="step">
@@ -874,10 +874,10 @@ python "$HOME\.claude\tools\gemini-analyze.py" youtube "https://youtube.com/watc
         <div class="step-num">4</div>
         <div class="step-content">
           <h4>Get a Gemini API key (image &amp; video analysis only)</h4>
-          <p>Visit <code>aistudio.google.com/apikey</code>, create a free key, paste when setup.py asks. Only <code>gemini-analyze.py</code> uses this. Stored in <code>~/.config/delegate-to-gemini/.env</code>.</p>
+          <p>Visit <code>aistudio.google.com/apikey</code>, create a free key, then paste it as the only line in <code>~/.config/delegate-to-gemini/api-key.txt</code> (setup.py creates the template). Only <code>gemini-analyze.py</code> uses this.</p>
           <ul>
             <li>Windows: file is under your user profile — private by default</li>
-            <li>macOS / Linux: run <code>chmod 600 ~/.config/delegate-to-gemini/.env</code> after setup</li>
+            <li>macOS / Linux: run <code>chmod 600 ~/.config/delegate-to-gemini/api-key.txt</code> after setup</li>
           </ul>
         </div>
       </div>
@@ -922,7 +922,7 @@ python "$HOME\.claude\tools\gemini-analyze.py" youtube "https://youtube.com/watc
         <div class="exclude">✗ docs/superpowers/ &nbsp;<span class="comment"># internal planning docs</span></div>
         <div class="comment">&nbsp;</div>
         <div class="comment"># Outside the folder — never in repo:</div>
-        <div class="exclude">✗ ~/.config/delegate-to-gemini/.env &nbsp;<span class="comment"># API key</span></div>
+        <div class="exclude">✗ ~/.config/delegate-to-gemini/api-key.txt &nbsp;<span class="comment"># API key</span></div>
         <div class="exclude">✗ AI-Context/ &nbsp;<span class="comment"># project research output</span></div>
       </div>
     </div>
@@ -1032,7 +1032,7 @@ Claude: 🤖 Delegating to Gemini Flash — analyzing UI screenshot
         <tr><td><code>quota</code> / <code>rate limit</code> in gemini-analyze</td><td>Free API tier (15 RPM)</td><td>Wait 60 seconds or check aistudio.google.com/billing</td></tr>
         <tr><td>Empty / blank response</td><td>Network issue or malformed prompt</td><td>Retry once; if still empty, handle in Claude</td></tr>
         <tr><td><code>command not found: gemini</code></td><td>Gemini CLI not installed</td><td>Run <code>python "$HOME/.claude/skills/delegate-to-gemini/setup.py"</code></td></tr>
-        <tr><td><code>No GEMINI_API_KEY</code></td><td>API key missing (image/video only)</td><td>Run setup.py — stores key in <code>~/.config/delegate-to-gemini/.env</code></td></tr>
+        <tr><td><code>No API key found</code></td><td>api-key.txt is empty (image/video only)</td><td>Run setup.py to create the template, then paste your key into <code>~/.config/delegate-to-gemini/api-key.txt</code></td></tr>
         <tr><td><code>gemini-analyze.py</code> not found</td><td>Script not installed / moved</td><td>Run setup.py; handle task in Claude until resolved</td></tr>
       </tbody>
     </table>

@@ -14,7 +14,7 @@ import platform
 HOME = pathlib.Path.home()
 AI_CONTEXT = HOME / "AI-Context"
 TOOLS_DIR = HOME / ".claude" / "tools"
-ENV_FILE = HOME / ".config" / "delegate-to-gemini" / ".env"
+API_KEY_FILE = HOME / ".config" / "delegate-to-gemini" / "api-key.txt"
 
 
 def section(title):
@@ -75,45 +75,26 @@ def setup_ai_context():
 
 def setup_api_key():
     section("Step 4 — Gemini API Key (Image & Video Analysis)")
-    print("The image/video analysis tool requires a Gemini API key.")
-    print("This is SEPARATE from your CLI login.\n")
-    print("Get your free API key at: https://aistudio.google.com/apikey")
-    print("(Sign in with the same Google account you use for Gemini CLI)\n")
+    print("The image/video analysis tool (gemini-analyze.py) needs a Gemini API key.")
+    print("This is SEPARATE from your CLI login and is never stored in this repo.\n")
 
-    choice = input("Do you have a Gemini API key? (y/n): ").strip().lower()
-    if choice != 'y':
-        print("\n⚠️  Skipping API key setup.")
-        print("   Image/video analysis won't work until you add it.")
-        print(f"   Run this later: python setup.py --api-key-only")
-        return None
+    API_KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-    api_key = input("Paste your API key: ").strip()
-    if not api_key:
-        print("⚠️  No key entered. Skipping.")
-        return None
+    if API_KEY_FILE.exists() and API_KEY_FILE.read_text().strip().lstrip("#").strip():
+        print(f"✅ Key file already has content: {API_KEY_FILE}")
+        return
 
-    # Save to env file
-    ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(ENV_FILE, "w") as f:
-        f.write(f"GEMINI_API_KEY={api_key}\n")
-
+    API_KEY_FILE.write_text(
+        "# Paste your Gemini API key below this line — nothing else in this file.\n"
+        "# Get a free key at: https://aistudio.google.com/apikey\n"
+        "# (Sign in with the same Google account you use for Gemini CLI)\n"
+    )
     if platform.system() != "Windows":
-        os.chmod(ENV_FILE, 0o600)
+        os.chmod(API_KEY_FILE, 0o600)
 
-    # Also set as persistent environment variable
-    if platform.system() == "Windows":
-        subprocess.run([
-            "powershell", "-Command",
-            f'[System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "{api_key}", "User")'
-        ], capture_output=True)
-    else:
-        shell_rc = HOME / (".zshrc" if (HOME / ".zshrc").exists() else ".bashrc")
-        with open(shell_rc, "a") as f:
-            f.write(f'\nexport GEMINI_API_KEY="{api_key}"  # delegate-to-gemini\n')
-
-    print(f"✅ API key saved to: {ENV_FILE}")
-    print("✅ Set as permanent environment variable.")
-    return api_key
+    print(f"✅ Created: {API_KEY_FILE}")
+    print("\n➡️  ACTION NEEDED: open that file and paste your API key as the last line.")
+    print("   Image/video analysis won't work until you do this.")
 
 
 def install_tool():
@@ -164,6 +145,9 @@ Usage:
 
 Tell Claude: "read my AI-Context and let's build X"
 """)
+    key_content = API_KEY_FILE.read_text().strip() if API_KEY_FILE.exists() else ""
+    if not key_content.lstrip("#").strip():
+        print(f"⚠️  Image/video analysis needs an API key — paste one into: {API_KEY_FILE}")
 
 
 def main():

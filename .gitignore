@@ -1,0 +1,18 @@
+# Local credentials / config — never commit
+.env
+*.env
+.config/
+
+# Output the skill writes if run from inside this repo
+AI-Context/
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
