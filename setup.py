@@ -1,175 +1,122 @@
 #!/usr/bin/env python3
 """
-delegate-to-gemini skill installer
-Asks for credentials and sets up the AI-Context bridge folder.
-Run once: python setup.py
+delegate-to-gemini setup - run once per machine.
+
+  python setup.py              install the SDK, create the key file, verify everything works
+  python setup.py --enter-key  same, and type/paste your API key at a hidden prompt
+  python setup.py --check      only verify (no installs, no file changes)
+
+Your API key is never passed on the command line, never printed, and never stored in this repo.
 """
 
+from __future__ import annotations
+
+import getpass
 import os
-import sys
 import pathlib
 import subprocess
-import platform
+import sys
 
-HOME = pathlib.Path.home()
-AI_CONTEXT = HOME / "AI-Context"
-TOOLS_DIR = HOME / ".claude" / "tools"
-API_KEY_FILE = HOME / ".config" / "delegate-to-gemini" / "api-key.txt"
-
-
-def section(title):
-    print(f"\n{'='*50}")
-    print(f"  {title}")
-    print(f"{'='*50}")
-
-
-def check_gemini_cli():
-    section("Step 1 — Gemini CLI")
-    try:
-        result = subprocess.run(["gemini", "--version"], capture_output=True, text=True)
-        print(f"✅ Gemini CLI found: v{result.stdout.strip()}")
-        return True
-    except FileNotFoundError:
-        print("❌ Gemini CLI not found.")
-        print("\nInstall it with:")
-        print("  npm install -g @google/gemini-cli")
-        print("\nThen run this setup again.")
-        return False
+HERE = pathlib.Path(__file__).resolve().parent
+SCRIPT = HERE / "scripts" / "gemini.py"
+KEY_FILE = pathlib.Path(
+    os.environ.get("DELEGATE_TO_GEMINI_KEY_FILE")
+    or pathlib.Path.home() / ".config" / "delegate-to-gemini" / "api-key.txt"
+)
+TEMPLATE = (
+    "# Paste your Gemini API key on the line below - nothing else in this file.\n"
+    "# Get a free key at https://aistudio.google.com/apikey\n"
+    "# This file lives outside any repo. Never commit it or share it.\n"
+)
 
 
-def check_gemini_login():
-    section("Step 2 — Gemini CLI Login")
-    print("You need to be logged into Gemini CLI with your Google account.")
-    print("\nIf not logged in yet, open a terminal and run:")
-    print("  gemini")
-    print("Then inside Gemini CLI type: /auth")
-    print("Follow the browser login flow.")
-    input("\nPress Enter once you're logged in (or already are)...")
-
-    try:
-        result = subprocess.run(
-            ["gemini", "Say OK in one word", "--output-format", "text"],
-            capture_output=True, text=True, timeout=20
-        )
-        if result.returncode == 0:
-            print("✅ Gemini CLI login verified.")
-            return True
-        else:
-            print("⚠️  Could not verify login. Continuing anyway.")
-            print("   (You can re-run setup if Gemini CLI doesn't work)")
-            return True
-    except Exception:
-        print("⚠️  Could not verify login. Continuing anyway.")
-        return True
+def say(msg: str) -> None:
+    print(msg, flush=True)
 
 
-def setup_ai_context():
-    section("Step 3 — AI-Context Bridge Folder")
-    folders = ["research", "ideation", "analysis", "drafts"]
-    for folder in folders:
-        path = AI_CONTEXT / folder
-        path.mkdir(parents=True, exist_ok=True)
-    print(f"✅ Created: {AI_CONTEXT}")
-    print("   Subfolders: research/, ideation/, analysis/, drafts/")
-
-
-def setup_api_key():
-    section("Step 4 — Gemini API Key (Image & Video Analysis)")
-    print("The image/video analysis tool (gemini-analyze.py) needs a Gemini API key.")
-    print("This is SEPARATE from your CLI login and is never stored in this repo.\n")
-
-    API_KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    if API_KEY_FILE.exists() and API_KEY_FILE.read_text().strip().lstrip("#").strip():
-        print(f"✅ Key file already has content: {API_KEY_FILE}")
-        return
-
-    API_KEY_FILE.write_text(
-        "# Paste your Gemini API key below this line — nothing else in this file.\n"
-        "# Get a free key at: https://aistudio.google.com/apikey\n"
-        "# (Sign in with the same Google account you use for Gemini CLI)\n"
-    )
-    if platform.system() != "Windows":
-        os.chmod(API_KEY_FILE, 0o600)
-
-    print(f"✅ Created: {API_KEY_FILE}")
-    print("\n➡️  ACTION NEEDED: open that file and paste your API key as the last line.")
-    print("   Image/video analysis won't work until you do this.")
-
-
-def install_tool():
-    section("Step 5 — Install gemini-analyze.py")
-    TOOLS_DIR.mkdir(parents=True, exist_ok=True)
-    source = pathlib.Path(__file__).parent / "gemini-analyze.py"
-    dest = TOOLS_DIR / "gemini-analyze.py"
-
-    if source.exists():
-        import shutil
-        shutil.copy2(source, dest)
-        print(f"✅ Installed: {dest}")
+def lock_down(path: pathlib.Path) -> None:
+    """Make the key file readable only by the current user."""
+    if os.name == "nt":
+        user = os.environ.get("USERNAME")
+        if user:
+            subprocess.run(["icacls", str(path), "/inheritance:r", "/grant:r", f"{user}:F"],
+                           capture_output=True)
     else:
-        print(f"⚠️  gemini-analyze.py not found next to setup.py — skipping tool install.")
+        os.chmod(path, 0o600)
 
 
-def check_python_deps():
-    section("Step 6 — Python Dependencies")
+def has_key() -> bool:
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        return True
+    if not KEY_FILE.exists():
+        return False
+    return any(l.strip() and not l.strip().startswith("#")
+               for l in KEY_FILE.read_text(encoding="utf-8-sig").splitlines())
+
+
+def main() -> int:
+    for s in (sys.stdout, sys.stderr):
+        try:
+            s.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+    args = set(sys.argv[1:])
+    check_only = "--check" in args
+
+    say("delegate-to-gemini setup\n")
+    if sys.version_info < (3, 9):
+        say(f"[x] Python 3.9+ is required (you have {sys.version.split()[0]}).")
+        return 2
+    say(f"[ok] Python {sys.version.split()[0]}")
+
+    # 1. SDK
     try:
-        import google.genai
-        print("✅ google-genai already installed.")
+        import google.genai  # noqa: F401
+        say("[ok] google-genai is installed")
     except ImportError:
-        print("Installing google-genai...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "google-genai"], check=True)
-        print("✅ google-genai installed.")
+        if check_only:
+            say("[x] google-genai is missing. Run: python -m pip install -U google-genai")
+            return 2
+        say("[..] Installing google-genai ...")
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "-U", "--user", "google-genai"])
+        if r.returncode != 0:
+            say("[x] pip install failed. Try: python -m pip install -U google-genai")
+            return 2
+        say("[ok] google-genai installed")
 
+    # 2. Key file
+    if not check_only:
+        KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        if not KEY_FILE.exists():
+            KEY_FILE.write_text(TEMPLATE, encoding="utf-8")
+            lock_down(KEY_FILE)
+            say(f"[ok] Created key file: {KEY_FILE}")
+        if "--enter-key" in args:
+            if not sys.stdin.isatty():
+                say("[x] --enter-key needs an interactive terminal.")
+                return 2
+            key = getpass.getpass("Paste your Gemini API key (input is hidden): ").strip()
+            if key:
+                KEY_FILE.write_text(TEMPLATE + key + "\n", encoding="utf-8")
+                lock_down(KEY_FILE)
+                say("[ok] Key saved (only your user account can read the file)")
 
-def print_summary():
-    section("Setup Complete!")
-    print(f"""
-What was set up:
-  ✅ Gemini CLI login verified
-  ✅ AI-Context bridge: {AI_CONTEXT}
-  ✅ Image/video tool: {TOOLS_DIR / "gemini-analyze.py"}
-  ✅ Python SDK: google-genai
+    if not has_key():
+        say("\n[!] No API key yet. Do ONE of these, then run: python setup.py --check")
+        say("    a) python setup.py --enter-key")
+        say(f"    b) paste the key as the last line of: {KEY_FILE}")
+        say("    c) set the GEMINI_API_KEY environment variable")
+        say("    Free key: https://aistudio.google.com/apikey")
+        return 0 if not check_only else 2
 
-Your workflow:
-  GEMINI  → ideation, research, drafts, image/video analysis
-              saves to ~/AI-Context/
-  CLAUDE  → code, systems, testing, polish
-              reads from ~/AI-Context/
-
-Usage:
-  • Research:  gemini --yolo "research topic" --output-format text
-  • Ideation:  gemini -i "let's brainstorm..."
-  • Image:     python ~/.claude/tools/gemini-analyze.py image photo.png "analyze"
-  • Video:     python ~/.claude/tools/gemini-analyze.py video clip.mp4 "analyze"
-
-Tell Claude: "read my AI-Context and let's build X"
-""")
-    key_content = API_KEY_FILE.read_text().strip() if API_KEY_FILE.exists() else ""
-    if not key_content.lstrip("#").strip():
-        print(f"⚠️  Image/video analysis needs an API key — paste one into: {API_KEY_FILE}")
-
-
-def main():
-    print("\n🔧 delegate-to-gemini — Skill Installer")
-    print("Sets up the Gemini + Claude dual-AI workflow.\n")
-
-    api_key_only = "--api-key-only" in sys.argv
-
-    if api_key_only:
-        setup_api_key()
-        return
-
-    if not check_gemini_cli():
-        sys.exit(1)
-
-    check_gemini_login()
-    setup_ai_context()
-    setup_api_key()
-    install_tool()
-    check_python_deps()
-    print_summary()
+    # 3. Live check
+    say("[..] Checking the key with one tiny Flash request ...")
+    r = subprocess.run([sys.executable, str(SCRIPT), "check"])
+    if r.returncode != 0:
+        return r.returncode
+    say(f"\nAll set. Agents call:  python \"{SCRIPT}\" ask \"your task\"")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

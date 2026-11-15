@@ -1,18 +1,26 @@
-# Local credentials / config — never commit
+# Secrets - never commit
 .env
+.env.*
 *.env
+api-key.txt
+*.key
+*.pem
 .config/
 
-# Output the skill writes if run from inside this repo
+# Output the skill writes when run from inside this repo
 AI-Context/
 
 # Python
 __pycache__/
 *.pyc
+.venv/
+venv/
 
-# Editor/OS
+# Editor / OS
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
 
-# Local Claude Code settings (machine-specific)
+# Machine-specific agent settings
 .claude/settings.local.json
